@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Humanizer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Readable code, minus the robot energy</p>
+        <div class="hero-copy">
+          <div>
+            <h1>Code Humanizer</h1>
+            <p class="hero-text">
+              Paste code, smooth out the rough edges, and get a plain-English
+              walkthrough of what it is doing.
+            </p>
+          </div>
+          <div class="hero-card">
+            <span>What it does</span>
+            <strong>Cleaner naming, tighter formatting, clearer intent.</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel input-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Input</p>
+              <h2>Drop in any JavaScript, TypeScript, Python, or mixed code</h2>
+            </div>
+            <button id="loadExample" class="ghost-button" type="button">
+              Load example
+            </button>
+          </div>
+
+          <div class="toolbar">
+            <label class="select-wrap">
+              <span>Language hint</span>
+              <select id="languageHint">
+                <option value="auto">Auto-detect</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="typescript">TypeScript</option>
+                <option value="java">Java</option>
+                <option value="csharp">C#</option>
+                <option value="go">Go</option>
+                <option value="rust">Rust</option>
+                <option value="php">PHP</option>
+                <option value="ruby">Ruby</option>
+                <option value="cpp">C/C++</option>
+              </select>
+            </label>
+            <label class="toggle">
+              <input id="summaryToggle" type="checkbox" checked />
+              <span>Add a human summary comment</span>
+            </label>
+            <label class="toggle">
+              <input id="renameToggle" type="checkbox" checked />
+              <span>Expand shorthand variable names</span>
+            </label>
+            <label class="toggle">
+              <input id="spacingToggle" type="checkbox" checked />
+              <span>Normalize spacing and indentation</span>
+            </label>
+          </div>
+          <input type="file" id="uploadInput" />
+
+          <textarea
+            id="sourceCode"
+            spellcheck="false"
+            placeholder="async function hndlUsrMsg(msg, llmSvc, sessCtx){const sysPrompt = buildSysPrompt(sessCtx); return llmSvc.genResp({msg, sysPrompt})}"
+          ></textarea>
+
+          <div class="actions">
+            <button id="humanizeButton" class="primary-button" type="button">
+              Humanize code
+            </button>
+            <button id="clearButton" class="secondary-button" type="button">
+              Clear
+            </button>
+          </div>
+          <p id="statusMessage" class="status-message">Start the Python server, then humanize your code.</p>
+        </section>
+
+        <section class="panel output-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Output</p>
+              <h2>Humanized code</h2>
+              <p id="resultMeta" class="result-meta">Developer-friendly rewrite profile</p>
+            </div>
+            <button id="copyButton" class="ghost-button" type="button">
+              Copy result
+            </button>
+          </div>
+
+          <pre id="humanizedCode" class="code-output"><code>// Humanized code will appear here.</code></pre>
+        </section>
+
+        <section class="panel insight-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-label">Walkthrough</p>
+              <h2>What the code is doing</h2>
+            </div>
+          </div>
+
+          <div id="insightList" class="insights">
+            <p class="insight-empty">
+              Run the tool to generate a plain-English explanation.
+            </p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Complexity Metrics</h2>
+          </div>
+
+          <div id="metricsPanel"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Dead Code Analysis</h2>
+          </div>
+
+          <div id="deadCodePanel"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
