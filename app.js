@@ -1,187 +1,285 @@
-const sourceCode = document.getElementById("sourceCode");
-const humanizedCode = document.getElementById("humanizedCode");
-const insightList = document.getElementById("insightList");
-const summaryToggle = document.getElementById("summaryToggle");
-const renameToggle = document.getElementById("renameToggle");
-const spacingToggle = document.getElementById("spacingToggle");
-const languageHint = document.getElementById("languageHint");
-const humanizeButton = document.getElementById("humanizeButton");
-const clearButton = document.getElementById("clearButton");
-const loadExampleButton = document.getElementById("loadExample");
-const copyButton = document.getElementById("copyButton");
-const statusMessage = document.getElementById("statusMessage");
-const resultMeta = document.getElementById("resultMeta");
+import { api } from "./services.js";
+import {
+  renderCareer,
+  renderConversion,
+  renderDeadCode,
+  renderInsights,
+  renderMetrics,
+  renderSecurity,
+} from "./components.js";
+
+const state = {
+  activeTab: "humanizer",
+  monacoReady: false,
+  sourceEditor: null,
+  humanizedEditor: null,
+  convertedEditor: null,
+};
+
+const sourceFallback = document.getElementById("sourceCode");
+const humanizedFallback = document.getElementById("humanizedCode");
+const convertedFallback = document.getElementById("convertedCode");
+const insightPanel = document.getElementById("insightList");
 const metricsPanel = document.getElementById("metricsPanel");
-const uploadInput = document.getElementById("uploadInput");
 const deadCodePanel = document.getElementById("deadCodePanel");
+const securityPanel = document.getElementById("securityPanel");
+const careerPanel = document.getElementById("careerPanel");
+const uploadInput = document.getElementById("uploadInput");
+const dropZone = document.getElementById("dropZone");
+const statusMessage = document.getElementById("statusMessage");
+const themeToggle = document.getElementById("themeToggle");
+const languageHint = document.getElementById("languageHint");
+const sourceLanguage = document.getElementById("sourceLanguage");
+const targetLanguage = document.getElementById("targetLanguage");
+const refactorMode = document.getElementById("refactorMode");
+const conceptInputs = Array.from(document.querySelectorAll("[data-concept]"));
+const downloadButton = document.getElementById("downloadConverted");
 
-const exampleSnippet = `async function hndlUsrMsg(msg, llmSvc, sessCtx){
-const sysPrompt = buildSysPrompt(sessCtx)
-const convoHist = sessCtx.hist || []
-const resp = await llmSvc.genResp({
-msg,
-sysPrompt,
-convoHist
-})
-return {resp, nxtIntent: routeIntent(msg)}
-}`;
-
-function renderInsights(insights) {
-  if (!insights.length) {
-    insightList.innerHTML =
-      '<p class="insight-empty">Add some code and run the tool to generate a walkthrough.</p>';
-    return;
-  }
-
-  insightList.innerHTML = insights
-    .map(
-      (insight) => `
-        <article class="insight-card">
-          <h3>${insight.title}</h3>
-          <p>${insight.body}</p>
-        </article>
-      `
-    )
-    .join("");
+function getSelectedConcepts() {
+  return conceptInputs.filter((input) => input.checked).map((input) => input.value);
 }
 
-function renderMetrics(metrics) {
-  if (!metrics) return;
-
-  metricsPanel.innerHTML = `
-    <div class="metric-card">
-      <h3>Complexity</h3>
-      <p>${metrics.level}</p>
-      <span>Score: ${metrics.score}</span>
-    </div>
-  `;
-}
-
-function renderDeadCode(items) {
-  if (!items.length) {
-    deadCodePanel.innerHTML = "<p>No dead code detected.</p>";
-    return;
-  }
-
-  deadCodePanel.innerHTML = items
-    .map(item => `<div class="dead-item">${item}</div>`)
-    .join("");
-}
-
-function setStatus(message, isError = false) {
+function setStatus(message, tone = "idle") {
   statusMessage.textContent = message;
-  statusMessage.dataset.state = isError ? "error" : "idle";
+  statusMessage.dataset.state = tone;
 }
 
-function setResultMeta(language = "generic", chatbotSignals = []) {
-  const readableLanguage = language === "generic" ? "language-neutral" : language;
-  resultMeta.textContent = chatbotSignals.length
-    ? `${readableLanguage} | developer-friendly profile | ${chatbotSignals.join(", ")}`
-    : `${readableLanguage} | developer-friendly profile`;
+function getSourceCode() {
+  return state.sourceEditor ? state.sourceEditor.getValue() : sourceFallback.value;
+}
+
+function setSourceCode(value) {
+  if (state.sourceEditor) {
+    state.sourceEditor.setValue(value);
+  }
+  sourceFallback.value = value;
+}
+
+function setHumanizedCode(value) {
+  if (state.humanizedEditor) {
+    state.humanizedEditor.setValue(value);
+  }
+  humanizedFallback.textContent = value;
+}
+
+function setConvertedCode(value) {
+  if (state.convertedEditor) {
+    state.convertedEditor.setValue(value);
+  }
+  convertedFallback.textContent = value;
+}
+
+function currentTheme() {
+  return document.body.dataset.theme || "dark";
+}
+
+function toggleTheme() {
+  document.body.dataset.theme = currentTheme() === "dark" ? "light" : "dark";
+  themeToggle.textContent = currentTheme() === "dark" ? "Light Mode" : "Dark Mode";
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll("[data-tab-button]").forEach((button) => {
+    button.dataset.active = String(button.dataset.tabButton === tab);
+  });
+  document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== tab;
+  });
 }
 
 async function runHumanizer() {
-  const code = sourceCode.value.trim();
-
+  const code = getSourceCode().trim();
   if (!code) {
-    humanizedCode.textContent = "// Humanized code will appear here.";
-    renderInsights([]);
-    setStatus("Paste some code to humanize.");
+    setStatus("Paste or drop some code first.", "warning");
     return;
   }
 
-  humanizeButton.disabled = true;
-  setStatus("Humanizing your code...");
+  setStatus("Humanizing code with concept and quality analysis...");
+  const payload = await api.humanize({
+    code,
+    language_hint: languageHint.value,
+    concept_preferences: getSelectedConcepts(),
+    refactor_mode: refactorMode.value,
+    options: {
+      add_summary_comment: true,
+      rename_identifiers: true,
+      normalize_spacing: true,
+      add_docstrings: true,
+      explain_complexity: true,
+      detect_dead_code: true,
+      target_profile: "developer_friendly",
+    },
+  });
 
-  try {
-    const response = await fetch("/api/humanize", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        code,
-        options: {
-          add_summary_comment: summaryToggle.checked,
-          rename_identifiers: renameToggle.checked,
-          normalize_spacing: spacingToggle.checked,
-          language_hint: languageHint.value,
-          target_profile: "developer_friendly",
-          add_docstrings: true,
-          explain_complexity: true,
-          detect_dead_code: true,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("The backend could not process this request.");
-    }
-
-    const payload = await response.json();
-    humanizedCode.textContent = payload.code || "// Humanized code will appear here.";
-    renderInsights(payload.insights || []);
-    renderMetrics(payload.complexity);
-    renderDeadCode(payload.dead_code || []);
-    setResultMeta(payload.language, payload.chatbot_signals || []);
-    setStatus(`Humanized successfully as ${payload.language || "generic"} developer-friendly code.`);
-  } catch (error) {
-    humanizedCode.textContent = "// Start the Python server and try again.";
-    renderInsights([]);
-    metricsPanel.innerHTML = "";
-    renderDeadCode([]);
-    setResultMeta();
-    setStatus(error.message || "Unable to reach the backend.", true);
-  } finally {
-    humanizeButton.disabled = false;
-  }
+  setHumanizedCode(payload.code || "");
+  renderInsights(insightPanel, payload.insights || []);
+  renderMetrics(metricsPanel, payload.quality);
+  renderDeadCode(deadCodePanel, payload.dead_code || []);
+  renderSecurity(securityPanel, payload.security);
+  setStatus(`Humanized as ${payload.language} in ${payload.mode} mode.`);
 }
 
-humanizeButton.addEventListener("click", runHumanizer);
-
-clearButton.addEventListener("click", () => {
-  sourceCode.value = "";
-  humanizedCode.textContent = "// Humanized code will appear here.";
-  renderInsights([]);
-  metricsPanel.innerHTML = "";
-  renderDeadCode([]);
-  setResultMeta();
-  setStatus("Cleared.");
-});
-
-loadExampleButton.addEventListener("click", () => {
-  sourceCode.value = exampleSnippet;
-  languageHint.value = "javascript";
-  setStatus("Example loaded.");
-});
-
-copyButton.addEventListener("click", async () => {
-  const output = humanizedCode.textContent;
-
-  if (!output || output === "// Humanized code will appear here.") {
+async function runConverter() {
+  const code = getSourceCode().trim();
+  if (!code) {
+    setStatus("Paste or drop some code first.", "warning");
     return;
   }
 
-  try {
-    await navigator.clipboard.writeText(output);
-    copyButton.textContent = "Copied";
-  } catch (error) {
-    copyButton.textContent = "Copy manually";
+  setStatus("Converting code between languages...");
+  const payload = await api.convert({
+    code,
+    source_language: sourceLanguage.value,
+    target_language: targetLanguage.value,
+    concept_preferences: getSelectedConcepts(),
+    refactor_mode: refactorMode.value,
+  });
+
+  renderConversion(convertedFallback, payload);
+  setConvertedCode(payload.converted_code || "");
+  document.getElementById("conversionMeta").innerHTML = `
+    <strong>Confidence:</strong> ${payload.confidence_score}%<br />
+    <strong>Warnings:</strong> ${(payload.warnings || []).join(" | ")}
+  `;
+  setStatus(`Converted ${payload.source_language} to ${payload.target_language}.`);
+}
+
+async function runCareerAssistant() {
+  const code = getSourceCode().trim();
+  if (!code) {
+    setStatus("Paste or drop some code first.", "warning");
+    return;
   }
 
-  window.setTimeout(() => {
-    copyButton.textContent = "Copy result";
-  }, 1400);
-});
+  setStatus("Building project summary, resume bullets, and interview prep...");
+  const payload = await api.assistant({
+    code,
+    language_hint: languageHint.value,
+    project_name: "Code Humanizer V2",
+  });
 
-uploadInput.addEventListener("change", async (event) => {
-  const file = event.target.files[0];
+  renderCareer(careerPanel, payload.career_pack);
+  renderMetrics(metricsPanel, payload.analysis.quality);
+  renderSecurity(securityPanel, payload.analysis.security);
+  renderInsights(insightPanel, payload.analysis.insights || []);
+  setStatus("Career assistant pack generated.");
+}
 
-  if (!file) return;
+function downloadConvertedCode() {
+  const blob = new Blob([convertedFallback.textContent || ""], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `converted.${targetLanguage.value === "python" ? "py" : targetLanguage.value}`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
 
-  const text = await file.text();
+function attachUploadHandlers() {
+  uploadInput.addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    if (!file) {
+      return;
+    }
 
-  sourceCode.value = text;
+    setSourceCode(await file.text());
+    setStatus(`Loaded ${file.name}.`);
+  });
 
-  setStatus(`Loaded ${file.name}`);
-});
+  ["dragenter", "dragover"].forEach((eventName) =>
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropZone.dataset.drag = "true";
+    })
+  );
+
+  ["dragleave", "drop"].forEach((eventName) =>
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      dropZone.dataset.drag = "false";
+    })
+  );
+
+  dropZone.addEventListener("drop", async (event) => {
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) {
+      return;
+    }
+    setSourceCode(await file.text());
+    setStatus(`Loaded ${file.name} from drag and drop.`);
+  });
+}
+
+function setupMonaco() {
+  if (!window.require) {
+    return;
+  }
+
+  window.require.config({ paths: { vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs" } });
+  window.require(["vs/editor/editor.main"], () => {
+    state.monacoReady = true;
+    state.sourceEditor = monaco.editor.create(document.getElementById("sourceEditor"), {
+      value: sourceFallback.value,
+      language: "python",
+      automaticLayout: true,
+      minimap: { enabled: false },
+      theme: currentTheme() === "dark" ? "vs-dark" : "vs",
+    });
+    state.humanizedEditor = monaco.editor.create(document.getElementById("humanizedEditor"), {
+      value: "",
+      language: "python",
+      readOnly: true,
+      automaticLayout: true,
+      minimap: { enabled: false },
+      theme: currentTheme() === "dark" ? "vs-dark" : "vs",
+    });
+    state.convertedEditor = monaco.editor.create(document.getElementById("convertedEditor"), {
+      value: "",
+      language: "python",
+      readOnly: true,
+      automaticLayout: true,
+      minimap: { enabled: false },
+      theme: currentTheme() === "dark" ? "vs-dark" : "vs",
+    });
+  });
+}
+
+function bindEvents() {
+  document.getElementById("humanizeButton").addEventListener("click", () => runHumanizer().catch((error) => setStatus(error.message, "error")));
+  document.getElementById("convertButton").addEventListener("click", () => runConverter().catch((error) => setStatus(error.message, "error")));
+  document.getElementById("assistantButton").addEventListener("click", () => runCareerAssistant().catch((error) => setStatus(error.message, "error")));
+  document.getElementById("clearButton").addEventListener("click", () => {
+    setSourceCode("");
+    setHumanizedCode("");
+    setConvertedCode("");
+    renderInsights(insightPanel, []);
+    renderMetrics(metricsPanel, null);
+    renderDeadCode(deadCodePanel, []);
+    renderSecurity(securityPanel, null);
+    renderCareer(careerPanel, null);
+    setStatus("Workspace cleared.");
+  });
+  document.getElementById("loadExample").addEventListener("click", () => {
+    setSourceCode(`def hndl_usr_msg(msg, llm_svc, sess_ctx):\n    resp = llm_svc.gen_resp(msg=msg)\n    return resp`);
+    languageHint.value = "python";
+    sourceLanguage.value = "python";
+    targetLanguage.value = "java";
+    setStatus("Example loaded.");
+  });
+  document.querySelectorAll("[data-tab-button]").forEach((button) =>
+    button.addEventListener("click", () => switchTab(button.dataset.tabButton))
+  );
+  document.getElementById("copyHumanized").addEventListener("click", () => navigator.clipboard.writeText(humanizedFallback.textContent || ""));
+  document.getElementById("copyConverted").addEventListener("click", () => navigator.clipboard.writeText(convertedFallback.textContent || ""));
+  downloadButton.addEventListener("click", downloadConvertedCode);
+  themeToggle.addEventListener("click", toggleTheme);
+}
+
+bindEvents();
+attachUploadHandlers();
+switchTab("humanizer");
+renderInsights(insightPanel, []);
+renderDeadCode(deadCodePanel, []);
+renderSecurity(securityPanel, null);
+renderCareer(careerPanel, null);
+setupMonaco();

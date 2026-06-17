@@ -1,27 +1,42 @@
-# Code Humanizer
+# Code Humanizer V2
 
-A lightweight app with a Python backend that rewrites NLP chatbot code into more human-like, readable code across multiple languages.
+Code Humanizer V2 is an AI-oriented code transformation platform focused on readability, conversion, analysis, and developer storytelling.
 
-## What it does
+## Included workflows
 
-- Serves the UI and API from a tiny Python HTTP server
-- Auto-detects likely language or accepts a language hint
-- Recognizes common NLP chatbot patterns such as prompts, conversation state, LLM calls, and routing
-- Adds an optional summary comment at the top of the snippet
-- Expands common shorthand identifiers such as `usr` to `user`
-- Normalizes indentation and spacing
-- Generates a plain-English walkthrough of the snippet
+- Humanize code with identifier expansion, language detection, complexity analysis, dead-code detection, and walkthroughs
+- Convert code between C, C++, Java, and Python with confidence scores and warnings
+- Apply concept preferences such as functions, loops, OOP, async programming, and API usage
+- Score readability, maintainability, complexity, security, and overall humanization quality
+- Detect risky patterns including `eval`, `exec`, SQL injection hints, hardcoded secrets, unsafe deserialization, and command injection
+- Generate project summaries, resume bullet points, technical highlights, and interview preparation material
 
-## Run it
+## Architecture
 
-Run:
+- `app_backend/main.py`: FastAPI app and API routes
+- `app_backend/humanizer_engine.py`: humanization, walkthroughs, quality, and security integration
+- `app_backend/converter_engine.py`: multi-language conversion pipeline
+- `app_backend/concept_engine.py`: concept rules engine and refactor-mode guidance
+- `app_backend/security_engine.py`: heuristic security scanning
+- `app_backend/career_engine.py`: resume and interview assistant output
+- `services.js` and `components.js`: frontend service and rendering layers
+
+## Run locally
+
+1. Install dependencies:
 
 ```bash
-python server.py
+py -3 -m pip install -r requirements.txt
 ```
 
-Then open `http://127.0.0.1:8000`.
+2. Start the app:
+
+```bash
+py -3 server.py
+```
+
+3. Open `http://127.0.0.1:8000`
 
 ## Notes
 
-The backend logic lives in `humanizer.py` and uses heuristic transformations rather than full language parsers, so it works best as a readability improver for chatbot-oriented code rather than a perfect source-to-source compiler.
+This version uses heuristics rather than full parser-driven compilation or transpilation. It is designed to give strong developer guidance and useful first-pass transformations while surfacing confidence and warnings where manual review is still important.

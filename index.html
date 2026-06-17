@@ -3,137 +3,214 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Code Humanizer</title>
+    <title>Code Humanizer V2</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
   </head>
-  <body>
-    <div class="page-shell">
-      <header class="hero">
-        <p class="eyebrow">Readable code, minus the robot energy</p>
-        <div class="hero-copy">
-          <div>
-            <h1>Code Humanizer</h1>
-            <p class="hero-text">
-              Paste code, smooth out the rough edges, and get a plain-English
-              walkthrough of what it is doing.
-            </p>
-          </div>
-          <div class="hero-card">
-            <span>What it does</span>
-            <strong>Cleaner naming, tighter formatting, clearer intent.</strong>
-          </div>
+  <body data-theme="dark">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <p class="eyebrow">AI Code Transformation Platform</p>
+          <h1>Code Humanizer V2</h1>
+          <p class="lede">
+            Humanize, convert, analyze, secure, and present code from one workspace.
+          </p>
         </div>
-      </header>
 
-      <main class="workspace">
-        <section class="panel input-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-label">Input</p>
-              <h2>Drop in any JavaScript, TypeScript, Python, or mixed code</h2>
+        <div class="control-group">
+          <button id="themeToggle" class="secondary-button" type="button">Light Mode</button>
+        </div>
+
+        <section class="control-card">
+          <h2>Transformation Mode</h2>
+          <label>
+            <span>Refactor mode</span>
+            <select id="refactorMode">
+              <option value="beginner">Beginner Mode</option>
+              <option value="intermediate" selected>Intermediate Mode</option>
+              <option value="professional">Professional Mode</option>
+              <option value="production">Production Ready Mode</option>
+            </select>
+          </label>
+          <label>
+            <span>Humanizer language hint</span>
+            <select id="languageHint">
+              <option value="auto">Auto Detect</option>
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+            </select>
+          </label>
+          <label>
+            <span>Converter source</span>
+            <select id="sourceLanguage">
+              <option value="auto">Auto Detect</option>
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+            </select>
+          </label>
+          <label>
+            <span>Converter target</span>
+            <select id="targetLanguage">
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="control-card">
+          <h2>Code Structure Designer</h2>
+          <div class="concept-grid">
+            <label><input data-concept type="checkbox" value="Functions" checked />Functions</label>
+            <label><input data-concept type="checkbox" value="Classes" />Classes</label>
+            <label><input data-concept type="checkbox" value="Loops" checked />Loops</label>
+            <label><input data-concept type="checkbox" value="Conditional Statements" checked />Conditionals</label>
+            <label><input data-concept type="checkbox" value="Arrays" />Arrays</label>
+            <label><input data-concept type="checkbox" value="Lists" checked />Lists</label>
+            <label><input data-concept type="checkbox" value="Dictionaries / Maps" checked />Maps</label>
+            <label><input data-concept type="checkbox" value="Recursion" />Recursion</label>
+            <label><input data-concept type="checkbox" value="Exception Handling" checked />Exceptions</label>
+            <label><input data-concept type="checkbox" value="File Handling" />Files</label>
+            <label><input data-concept type="checkbox" value="OOP Principles" />OOP</label>
+            <label><input data-concept type="checkbox" value="Inheritance" />Inheritance</label>
+            <label><input data-concept type="checkbox" value="Polymorphism" />Polymorphism</label>
+            <label><input data-concept type="checkbox" value="Interfaces" />Interfaces</label>
+            <label><input data-concept type="checkbox" value="Generics / Templates" />Generics</label>
+            <label><input data-concept type="checkbox" value="Multithreading" />Threads</label>
+            <label><input data-concept type="checkbox" value="Async Programming" checked />Async</label>
+            <label><input data-concept type="checkbox" value="Lambda Functions" />Lambda</label>
+            <label><input data-concept type="checkbox" value="Functional Programming" />Functional</label>
+            <label><input data-concept type="checkbox" value="Design Patterns" />Patterns</label>
+            <label><input data-concept type="checkbox" value="Database Operations" />Database</label>
+            <label><input data-concept type="checkbox" value="API Calls" checked />API Calls</label>
+          </div>
+        </section>
+      </aside>
+
+      <main class="dashboard">
+        <header class="topbar glass">
+          <div class="tabs">
+            <button data-tab-button="humanizer" data-active="true">Humanizer</button>
+            <button data-tab-button="converter">Conversion Mode</button>
+            <button data-tab-button="assistant">Resume & Interview Assistant</button>
+          </div>
+          <div class="toolbar-actions">
+            <button id="loadExample" class="secondary-button" type="button">Load Example</button>
+            <button id="clearButton" class="secondary-button" type="button">Clear</button>
+          </div>
+        </header>
+
+        <section class="editor-grid">
+          <article class="glass drop-card" id="dropZone">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Source</p>
+                <h2>Drag, drop, paste, or upload code</h2>
+              </div>
+              <input type="file" id="uploadInput" />
             </div>
-            <button id="loadExample" class="ghost-button" type="button">
-              Load example
-            </button>
-          </div>
+            <div id="sourceEditor" class="editor-host"></div>
+            <textarea id="sourceCode" class="editor-fallback" spellcheck="false"></textarea>
+          </article>
 
-          <div class="toolbar">
-            <label class="select-wrap">
-              <span>Language hint</span>
-              <select id="languageHint">
-                <option value="auto">Auto-detect</option>
-                <option value="python">Python</option>
-                <option value="javascript">JavaScript</option>
-                <option value="typescript">TypeScript</option>
-                <option value="java">Java</option>
-                <option value="csharp">C#</option>
-                <option value="go">Go</option>
-                <option value="rust">Rust</option>
-                <option value="php">PHP</option>
-                <option value="ruby">Ruby</option>
-                <option value="cpp">C/C++</option>
-              </select>
-            </label>
-            <label class="toggle">
-              <input id="summaryToggle" type="checkbox" checked />
-              <span>Add a human summary comment</span>
-            </label>
-            <label class="toggle">
-              <input id="renameToggle" type="checkbox" checked />
-              <span>Expand shorthand variable names</span>
-            </label>
-            <label class="toggle">
-              <input id="spacingToggle" type="checkbox" checked />
-              <span>Normalize spacing and indentation</span>
-            </label>
-          </div>
-          <input type="file" id="uploadInput" />
-
-          <textarea
-            id="sourceCode"
-            spellcheck="false"
-            placeholder="async function hndlUsrMsg(msg, llmSvc, sessCtx){const sysPrompt = buildSysPrompt(sessCtx); return llmSvc.genResp({msg, sysPrompt})}"
-          ></textarea>
-
-          <div class="actions">
-            <button id="humanizeButton" class="primary-button" type="button">
-              Humanize code
-            </button>
-            <button id="clearButton" class="secondary-button" type="button">
-              Clear
-            </button>
-          </div>
-          <p id="statusMessage" class="status-message">Start the Python server, then humanize your code.</p>
-        </section>
-
-        <section class="panel output-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-label">Output</p>
-              <h2>Humanized code</h2>
-              <p id="resultMeta" class="result-meta">Developer-friendly rewrite profile</p>
+          <article class="glass" data-tab-panel="humanizer">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Humanized Output</p>
+                <h2>Readable code with walkthrough and metrics</h2>
+              </div>
+              <div class="button-row">
+                <button id="humanizeButton" class="primary-button" type="button">Humanize Code</button>
+                <button id="copyHumanized" class="secondary-button" type="button">Copy</button>
+              </div>
             </div>
-            <button id="copyButton" class="ghost-button" type="button">
-              Copy result
-            </button>
-          </div>
+            <div id="humanizedEditor" class="editor-host"></div>
+            <pre id="humanizedCode" class="editor-fallback output-pre"></pre>
+          </article>
 
-          <pre id="humanizedCode" class="code-output"><code>// Humanized code will appear here.</code></pre>
-        </section>
-
-        <section class="panel insight-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-label">Walkthrough</p>
-              <h2>What the code is doing</h2>
+          <article class="glass" data-tab-panel="converter" hidden>
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Converted Output</p>
+                <h2>Multi-language code converter</h2>
+              </div>
+              <div class="button-row">
+                <button id="convertButton" class="primary-button" type="button">Convert</button>
+                <button id="copyConverted" class="secondary-button" type="button">Copy</button>
+                <button id="downloadConverted" class="secondary-button" type="button">Download</button>
+              </div>
             </div>
-          </div>
+            <div id="convertedEditor" class="editor-host"></div>
+            <pre id="convertedCode" class="editor-fallback output-pre"></pre>
+            <div id="conversionMeta" class="meta-card"></div>
+          </article>
 
-          <div id="insightList" class="insights">
-            <p class="insight-empty">
-              Run the tool to generate a plain-English explanation.
-            </p>
-          </div>
+          <article class="glass assistant-panel" data-tab-panel="assistant" hidden>
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Career Assistant</p>
+                <h2>Project summary, resume bullets, and interview prep</h2>
+              </div>
+              <button id="assistantButton" class="primary-button" type="button">Generate Career Pack</button>
+            </div>
+            <div id="careerPanel" class="scroll-panel"></div>
+          </article>
         </section>
 
-        <section class="panel">
-          <div class="panel-heading">
-            <h2>Complexity Metrics</h2>
-          </div>
+        <section class="analytics-grid">
+          <article class="glass analytics-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Code Quality Dashboard</p>
+                <h2>Readability, maintainability, security, and humanization</h2>
+              </div>
+            </div>
+            <div id="metricsPanel" class="metrics-grid"></div>
+          </article>
 
-          <div id="metricsPanel"></div>
+          <article class="glass analytics-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Human Walkthrough</p>
+                <h2>Transformation notes and structural explanation</h2>
+              </div>
+            </div>
+            <div id="insightList" class="scroll-panel"></div>
+          </article>
+
+          <article class="glass analytics-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Dead Code & Warnings</p>
+                <h2>Unused branches and suspicious leftovers</h2>
+              </div>
+            </div>
+            <div id="deadCodePanel" class="scroll-panel"></div>
+          </article>
+
+          <article class="glass analytics-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Security Analyzer</p>
+                <h2>Risk level, findings, and recommended fixes</h2>
+              </div>
+            </div>
+            <div id="securityPanel" class="scroll-panel"></div>
+          </article>
         </section>
 
-        <section class="panel">
-          <div class="panel-heading">
-            <h2>Dead Code Analysis</h2>
-          </div>
-
-          <div id="deadCodePanel"></div>
-        </section>
+        <footer class="status-bar glass">
+          <span id="statusMessage" data-state="idle">FastAPI-powered workspace ready.</span>
+        </footer>
       </main>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>
