@@ -37,6 +37,12 @@ py -3 server.py
 
 3. Open `http://127.0.0.1:8000`
 
+## Latest Updates
+
+- Added optional **complexity analysis** and **dead‑code detection** via new `HumanizeOptions` flags (`explain_complexity`, `detect_dead_code`).
+- Server now validates request payload size (max 1 MiB) and returns `413 Request Entity Too Large` for oversized requests.
+- Added `add_docstrings` option for automatic docstring generation.
+
 ## Notes
 
-This version uses heuristics rather than full parser-driven compilation or transpilation. It is designed to give strong developer guidance and useful first-pass transformations while surfacing confidence and warnings where manual review is still important.
+This version uses heuristics rather than full parser‑driven compilation or transpilation. It is designed to give strong developer guidance and useful first‑pass transformations while surfacing confidence and warnings where manual review is still important.
