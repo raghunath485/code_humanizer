@@ -11,6 +11,7 @@ from app_backend.concept_engine import build_concept_plan
 from app_backend.career_engine import build_career_pack
 from app_backend.quality_engine import score_quality
 from app_backend.security_engine import analyze_security
+from app_backend.codegen_engine import generate_code, list_available_patterns
 from app_backend.schemas import HumanizeOptions as _HumanizeOpts
 
 
@@ -194,7 +195,7 @@ with st.sidebar:
 
 # ── Tabs ─────────────────────────────────────────────────────────────────────
 
-tab_humanize, tab_convert, tab_career = st.tabs(["🔧 Humanize", "🔄 Convert", "💼 Career Assistant"])
+tab_humanize, tab_convert, tab_codegen, tab_career = st.tabs(["🔧 Humanize", "🔄 Convert", "✍️ Code Writer", "💼 Career Assistant"])
 
 # ── Tab 1: Humanize ──────────────────────────────────────────────────────────
 
@@ -312,7 +313,69 @@ with tab_convert:
                 for w in warns:
                     st.markdown(f"- {w}")
 
-# ── Tab 3: Career Assistant ──────────────────────────────────────────────────
+# ── Tab 3: Code Writer ───────────────────────────────────────────────────────
+
+with tab_codegen:
+    st.markdown("#### ✍️ Describe what you need")
+    st.markdown(
+        '<p style="color:#9ca3af;font-size:0.9rem;">'
+        'Type a question or description and get working code instantly. '
+        'Examples: "fibonacci", "binary search", "linked list", "calculator", "file handling"'
+        '</p>',
+        unsafe_allow_html=True,
+    )
+
+    codegen_prompt = st.text_area(
+        "What code do you need?",
+        height=120,
+        placeholder="e.g. Write a program to check if a number is prime",
+        key="codegen_input",
+    )
+
+    codegen_lang = st.selectbox(
+        "Output language",
+        ["python", "c", "cpp", "java"],
+        key="codegen_lang",
+    )
+
+    # Show available patterns as chips
+    patterns = list_available_patterns()
+    st.markdown("**Available patterns:** " + " ".join(badge(p, "blue") for p in patterns), unsafe_allow_html=True)
+
+    if st.button("✍️ Generate Code", type="primary", use_container_width=True, key="btn_codegen"):
+        if not codegen_prompt.strip():
+            st.warning("Please describe what code you need.")
+        else:
+            with st.spinner("Generating code…"):
+                gen = generate_code(codegen_prompt, codegen_lang)
+
+            st.markdown("---")
+
+            # Metrics
+            g1, g2 = st.columns(2)
+            with g1:
+                render_metric("Matched Pattern", gen.get("pattern", "—"))
+            with g2:
+                render_metric("Confidence", f"{gen.get('confidence', 0)}%")
+
+            # Message
+            msg = gen.get("message", "")
+            if gen.get("confidence", 0) < 40:
+                st.warning(msg)
+            else:
+                st.success(msg)
+
+            # Generated code
+            st.markdown("#### 📝 Generated Code")
+            st.code(gen.get("code", ""), language=gen.get("language", "python"))
+
+            # Suggestions
+            suggestions = gen.get("suggestions", [])
+            if suggestions:
+                st.markdown("#### 💡 You might also try")
+                st.markdown(" ".join(badge(s, "yellow") for s in suggestions), unsafe_allow_html=True)
+
+# ── Tab 4: Career Assistant ──────────────────────────────────────────────────
 
 with tab_career:
     career_input = st.text_area(
